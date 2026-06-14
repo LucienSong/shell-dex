@@ -62,5 +62,3 @@ A change is mergeable when:
 ## Tool pointers (this file is the SSoT)
 
 - `CLAUDE.md` → read this file
-- `.cursor/rules/main.mdc` → read this file
-- `.github/copilot-instructions.md` → read this file

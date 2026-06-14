@@ -83,28 +83,32 @@ export async function checkAllowance(
 
 /**
  * Build an ERC20 approval transaction.
- * 
- * Strategy: Always approve unlimited (max uint256) to avoid repeated approvals.
- * Alternative: exact amount approval (less gas cost but requires re-approval).
- * 
- * @param tokenAddress ERC20 token address
+ *
+ * Default strategy is `'exact'`: approves only the swap amount so the router
+ * cannot transfer more tokens than the current swap requires.
+ *
+ * Infinite (`maxUint256`) approval requires an explicit `strategy: 'unlimited'`
+ * opt-in.  Callers that enable this MUST surface the warning string exported
+ * below in their UI before sending the transaction.
+ *
+ * @param tokenAddress   ERC20 token address
  * @param spenderAddress The router/swap contract address
- * @param strategy 'unlimited' (default) or 'exact'
- * @param exactAmount Amount to approve (required if strategy='exact')
- * @returns Transaction call data for approval
+ * @param strategy       `'exact'` (default, secure) or `'unlimited'` (opt-in)
+ * @param exactAmount    Amount to approve (required when strategy is `'exact'`)
+ * @returns Transaction call data for the approval
  */
 export function buildApprovalTransaction(
   tokenAddress: Address,
   spenderAddress: Address,
-  strategy: 'unlimited' | 'exact' = 'unlimited',
+  strategy: 'unlimited' | 'exact' = 'exact',
   exactAmount?: bigint
 ): ApprovalTransactionData {
   const approvalAmount = strategy === 'unlimited'
     ? maxUint256
     : exactAmount;
 
-  if (!approvalAmount) {
-    throw new Error('exactAmount required for exact approval strategy');
+  if (approvalAmount === undefined) {
+    throw new Error('exactAmount required when strategy is "exact"');
   }
 
   return {
@@ -117,6 +121,12 @@ export function buildApprovalTransaction(
     value: BigInt(0),
   };
 }
+
+/**
+ * Warning copy that MUST be shown in the UI when infinite approval is enabled.
+ */
+export const INFINITE_APPROVAL_WARNING =
+  '⚠️ Granting unlimited approval — the router can transfer any amount of this token at any time.';
 
 /**
  * Parse approval transaction response from signed TX.

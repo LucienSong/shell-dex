@@ -10,6 +10,7 @@ import { useSwapState, useSwapExecution, getSwapStageMessage, SwapStage } from '
 import { getTokensForChain } from '@/config/tokens';
 import { supportedChains, type SupportedChainId } from '@/config/chains';
 import { type SwapQuote } from '@/lib/swapRouter';
+import { INFINITE_APPROVAL_WARNING } from '@/lib/tokenApproval';
 import { ReceiptModal, useReceiptModal } from '@/components/ReceiptModal';
 import { RouteSelector } from '@/components/RouteSelector';
 import { useMounted } from '@/hooks/useMounted';
@@ -35,6 +36,8 @@ export function SwapPanel() {
   const [showInputTokens, setShowInputTokens] = useState(false);
   const [showOutputTokens, setShowOutputTokens] = useState(false);
   const [slippageTolerance, setSlippageTolerance] = useState(DEFAULT_SLIPPAGE);
+  /** Infinite-approval opt-in. Defaults OFF (exact-amount approval). */
+  const [infiniteApproval, setInfiniteApproval] = useState(false);
 
   const supportedChainId = chainId as SupportedChainId;
   const availableTokens = getTokensForChain(supportedChainId);
@@ -129,6 +132,7 @@ export function SwapPanel() {
       tokenAddress: swap.inputToken.addresses[supportedChainId] as `0x${string}`,
       inputToken: swap.inputToken,
       outputToken: swap.outputToken,
+      infiniteApproval,
       onSuccess: () => {
         swap.setInputAmount('');
       },
@@ -436,6 +440,39 @@ export function SwapPanel() {
             <p className="mt-2 text-xs text-gray-600">{slippageHint}</p>
           </div>
         )}
+
+        {/* Approval settings */}
+        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
+          <label className="flex cursor-pointer items-center justify-between gap-2">
+            <span className="text-sm font-medium text-gray-700">Unlimited token approval</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={infiniteApproval}
+              aria-label="Unlimited token approval"
+              onClick={() => setInfiniteApproval(prev => !prev)}
+              className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
+                infiniteApproval ? 'bg-amber-500' : 'bg-gray-300'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
+                  infiniteApproval ? 'translate-x-4' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </label>
+          {infiniteApproval && (
+            <p className="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              {INFINITE_APPROVAL_WARNING}
+            </p>
+          )}
+          {!infiniteApproval && (
+            <p className="mt-1 text-xs text-gray-500">
+              Approves only the exact swap amount (recommended).
+            </p>
+          )}
+        </div>
 
         {execution.state.stage !== SwapStage.IDLE && (
           <div

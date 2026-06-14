@@ -21,6 +21,7 @@ import { type SwapQuote } from '@/lib/swapRouter';
 import {
   buildApprovalTransaction,
   checkAllowance,
+  INFINITE_APPROVAL_WARNING,
   isNativeTokenAddress,
 } from '@/lib/tokenApproval';
 import {
@@ -57,6 +58,12 @@ export interface SwapExecutionParams {
   tokenAddress: Address;
   inputToken: Token;
   outputToken: Token;
+  /**
+   * When true the approval transaction uses maxUint256 instead of the exact
+   * swap amount.  Defaults to false (exact-amount approval).
+   * Callers MUST display INFINITE_APPROVAL_WARNING before setting this to true.
+   */
+  infiniteApproval?: boolean;
   onSuccess?: (receipt: TransactionReceiptData) => void;
   onError?: (error: Error) => void;
 }
@@ -82,6 +89,7 @@ export function useSwapExecution() {
         tokenAddress,
         inputToken,
         outputToken,
+        infiniteApproval = false,
         onSuccess,
         onError,
       } = params;
@@ -137,11 +145,18 @@ export function useSwapExecution() {
             stage: SwapStage.AWAITING_APPROVAL,
           }));
 
+          // Default: approve the exact swap amount only (DEX-CRIT-2 fix).
+          // Infinite approval requires an explicit opt-in with UI warning.
           const approvalData = buildApprovalTransaction(
             tokenAddress,
             resolvedSwapContract,
-            'unlimited'
+            infiniteApproval ? 'unlimited' : 'exact',
+            infiniteApproval ? undefined : requiredInputAmount
           );
+
+          if (infiniteApproval) {
+            console.warn('[useSwapExecution] ' + INFINITE_APPROVAL_WARNING);
+          }
 
           const approvalTxHash = await walletClient.sendTransaction({
             account: userAddress,

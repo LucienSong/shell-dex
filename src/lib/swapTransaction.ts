@@ -64,8 +64,8 @@ export interface SwapTransaction {
  * Apply slippage tolerance to minimum output amount.
  *
  * @param outputAmount The expected output amount (in token base units, as BigInt)
- * @param slippageBps  Slippage in basis points (1 = 0.01 %, 50 = 0.5 %, 5000 = 50 %).
- *                     Accepted range: 1–5000.
+ * @param slippageBps  Slippage in basis points (0 = 0 %, 50 = 0.5 %, 5000 = 50 %).
+ *                     Accepted range: 0–5000.
  * @returns Minimum acceptable output after slippage
  *
  * Formula: minOutput = outputAmount × (10000 − slippageBps) / 10000
@@ -78,8 +78,8 @@ export function calculateMinimumOutput(
   outputAmount: bigint,
   slippageBps: number
 ): bigint {
-  if (!Number.isInteger(slippageBps) || slippageBps < 1 || slippageBps > 5000) {
-    throw new Error('slippageBps must be an integer between 1 and 5000 (0.01 %–50 %)');
+  if (!Number.isInteger(slippageBps) || slippageBps < 0 || slippageBps > 5000) {
+    throw new Error('slippageBps must be an integer between 0 and 5000 (0 %–50 %)');
   }
 
   const minimumOutput = (outputAmount * BigInt(10000 - slippageBps)) / 10000n;
@@ -121,9 +121,11 @@ export function buildSwapTransaction(params: SwapTransactionParams): SwapTransac
   }
 
   // Convert decimal slippage tolerance to integer basis points (e.g. 0.005 → 50).
-  // Clamp to the accepted range so rounding edge-cases don't produce out-of-range values.
   const rawBps = Math.round(slippageTolerance * 10000);
-  const slippageBps = Math.min(Math.max(rawBps, 1), 5000);
+  if (!Number.isFinite(rawBps) || rawBps < 0 || rawBps > 5000) {
+    throw new Error('slippageTolerance must be between 0 and 0.5 (0 %–50 %)');
+  }
+  const slippageBps = rawBps;
 
   // Calculate minimum output with slippage
   const expectedOutput = parseAmountToBaseUnits(quote.outputAmount, outputTokenDecimals, 'Quote output');
@@ -160,9 +162,9 @@ export function buildSwapTransaction(params: SwapTransactionParams): SwapTransac
  * router contract enforces – the slippage limit computed by
  * `calculateMinimumOutput`.
  *
- * If the calldata does not decode against the known ABI (e.g. a third-party
- * router or a fixture stub), the function returns the original calldata and
- * logs a warning so the caller is not silently broken.
+ * If the calldata does not decode against the known ABI, the function throws.
+ * Failing closed is safer than sending a swap without `amountOutMinimum`
+ * rewritten into the signed calldata.
  *
  * @param originalCallData Hex calldata string from the routing quote
  * @param minOutput        Minimum acceptable output, as a decimal string (token base units)
@@ -187,16 +189,11 @@ export function encodeSlippageIntoCallData(
       functionName: 'swap',
       args: [tokenIn, tokenOut, amountIn, BigInt(minOutput), recipient, deadline],
     });
-  } catch {
-    // Calldata does not match the Shell DEX router ABI (e.g. fixture mode or a
-    // different router integration).  Return the original so execution is not
-    // broken; the missing on-chain enforcement will be caught during integration
-    // testing against a live router.
-    console.warn(
-      '[swapTransaction] encodeSlippageIntoCallData: calldata did not decode ' +
-      'against SHELL_DEX_ROUTER_ABI – returning original. minOutput was ' + minOutput
+  } catch (error) {
+    throw new Error(
+      `encodeSlippageIntoCallData failed to decode calldata against SHELL_DEX_ROUTER_ABI: ` +
+      `${error instanceof Error ? error.message : 'unknown error'}`
     );
-    return originalCallData;
   }
 }
 

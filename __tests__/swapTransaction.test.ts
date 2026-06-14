@@ -38,8 +38,8 @@ describe('calculateMinimumOutput', () => {
     expect(min).toBe(995_000_000_000_000_000n);
   });
 
-  it('throws for slippageBps = 0 (below minimum)', () => {
-    expect(() => calculateMinimumOutput(1000n, 0)).toThrow();
+  it('returns the expected output unchanged for slippageBps = 0', () => {
+    expect(calculateMinimumOutput(1000n, 0)).toBe(1000n);
   });
 
   it('throws for slippageBps = 5001 (above maximum)', () => {
@@ -90,11 +90,11 @@ describe('encodeSlippageIntoCallData', () => {
       data: updatedCallData as `0x${string}`,
     });
 
-    expect(decoded.args[0]).toBe(tokenIn.toLowerCase());
-    expect(decoded.args[1]).toBe(tokenOut.toLowerCase());
+    expect((decoded.args[0] as string).toLowerCase()).toBe(tokenIn.toLowerCase());
+    expect((decoded.args[1] as string).toLowerCase()).toBe(tokenOut.toLowerCase());
     expect(decoded.args[2]).toBe(amountIn);
     expect(decoded.args[3]).toBe(500n);
-    expect(decoded.args[4]).toBe(recipient.toLowerCase());
+    expect((decoded.args[4] as string).toLowerCase()).toBe(recipient.toLowerCase());
     expect(decoded.args[5]).toBe(deadline);
   });
 
@@ -116,10 +116,9 @@ describe('encodeSlippageIntoCallData', () => {
     expect(decoded.args[3]).toBe(995n);
   });
 
-  it('returns original calldata when calldata does not match the Shell DEX router ABI', () => {
+  it('throws when calldata does not match the Shell DEX router ABI', () => {
     const invalidCallData = '0xdeadbeef';
-    const result = encodeSlippageIntoCallData(invalidCallData, '995');
-    expect(result).toBe(invalidCallData);
+    expect(() => encodeSlippageIntoCallData(invalidCallData, '995')).toThrow();
   });
 
   it('handles zero address tokens gracefully', () => {

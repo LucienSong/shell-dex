@@ -33,8 +33,7 @@ describe('buildApprovalTransaction – DEX-CRIT-2', () => {
 
   it('default strategy (no strategy arg) also uses exact amount', () => {
     const swapAmount = 42n;
-    // Calling with the default strategy
-    const tx = buildApprovalTransaction(TOKEN, SPENDER, 'exact', swapAmount);
+    const tx = buildApprovalTransaction(TOKEN, SPENDER, undefined, swapAmount);
 
     const decoded = decodeFunctionData({ abi: erc20Abi, data: tx.data });
     const [, amount] = decoded.args as [`0x${string}`, bigint];

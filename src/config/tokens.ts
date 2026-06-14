@@ -8,13 +8,13 @@
 import { SupportedChainId } from './chains';
 
 /**
- * Validate that an address is in canonical 32-byte Shell format.
- * Valid format: 0x + 64 lowercase hex characters (representing 32 bytes).
+ * Validate that an address is in canonical 20-byte EVM format.
+ * Valid format: 0x + 40 hex characters. Mixed-case checksum addresses are
+ * accepted and normalized to lowercase by `normalizeAddress()`.
  */
 export function isValidAddress(address: string | undefined): boolean {
   if (!address) return false;
-  const regex = /^0x[0-9a-f]{64}$/i;
-  return regex.test(address) && address === address.toLowerCase();
+  return /^0x[0-9a-f]{40}$/i.test(address);
 }
 
 /**
@@ -24,7 +24,7 @@ export function isValidAddress(address: string | undefined): boolean {
 export function normalizeAddress(address: string): string {
   if (!isValidAddress(address)) {
     throw new Error(
-      `Invalid address format: ${address}. Expected 0x + 64 lowercase hex characters (32 bytes).`
+      `Invalid address format: ${address}. Expected 0x + 40 hex characters (20 bytes).`
     );
   }
   return address.toLowerCase();
@@ -134,15 +134,15 @@ export function getTokenAddress(
   const token = getToken(tokenId);
   if (!token) return undefined;
   const address = token.addresses[chainId];
-  
+
   if (address && !isValidAddress(address)) {
     throw new Error(
       `Invalid token address for ${tokenId} on chain ${chainId}: ${address}. ` +
-      `Expected 0x + 64 lowercase hex characters (32 bytes).`
+      `Expected 0x + 40 hex characters (20 bytes).`
     );
   }
-  
-  return address;
+
+  return address ? normalizeAddress(address) : address;
 }
 
 /**

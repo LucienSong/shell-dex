@@ -3,7 +3,7 @@
  */
 
 import type { SupportedChainId } from '@/config/chains';
-import { type Token, getTokenAddress, isValidAddress } from '@/config/tokens';
+import { type Token, getTokenAddress } from '@/config/tokens';
 import type { Quote } from '@/hooks/useSwapState';
 import {
   buildDeterministicFixtureRoutes,
@@ -63,13 +63,6 @@ export async function getQuote(
   if (!inputAddr || !outputAddr) {
     throw new Error(
       `Token not available on chain ${chainId}: ${inputToken.symbol} or ${outputToken.symbol}`
-    );
-  }
-
-  // Validate addresses are in canonical format
-  if (!isValidAddress(inputAddr) || !isValidAddress(outputAddr)) {
-    throw new Error(
-      `Invalid token address format. Expected 0x + 64 lowercase hex characters (32 bytes).`
     );
   }
 

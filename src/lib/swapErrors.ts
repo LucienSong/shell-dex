@@ -9,8 +9,8 @@
  * - Network switch detection
  */
 
-import { Token } from '@/config/tokens';
-import { SupportedChainId } from '@/config/chains';
+import type { Token } from '@/config/tokens';
+import type { SupportedChainId } from '@/config/chains';
 
 export class SwapError extends Error {
   constructor(

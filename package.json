@@ -13,14 +13,19 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.100.9",
-    "@wagmi/core": "^3.4.9",
-    "accounts": "^0.8.10",
+    "@wagmi/core": "^3.5.5",
+    "accounts": "^0.14.11",
     "lucide-react": "^1.14.0",
-    "next": "^15.3.2",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "viem": "^2.48.11",
-    "wagmi": "^3.6.10"
+    "next": "^16.2.9",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "viem": "^2.53.1",
+    "wagmi": "^3.6.21"
+  },
+  "overrides": {
+    "hono": "^4.12.27",
+    "postcss": "$postcss",
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.4",
@@ -28,7 +33,7 @@
     "@types/react": "^19.1.5",
     "@types/react-dom": "^19.1.5",
     "@vitest/coverage-v8": "^4.1.7",
-    "postcss": "^8.5.14",
+    "postcss": "^8.5.15",
     "tailwindcss": "^4.2.4",
     "typescript": "^5.8.3",
     "vitest": "^4.1.7"

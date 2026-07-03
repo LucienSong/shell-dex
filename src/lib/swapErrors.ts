@@ -12,6 +12,9 @@
 import type { Token } from '@/config/tokens';
 import type { SupportedChainId } from '@/config/chains';
 
+const DECIMAL_AMOUNT_RE = /^(?:0|[1-9]\d*)(?:\.\d+)?$/;
+const ZERO_DECIMAL_AMOUNT_RE = /^0(?:\.0+)?$/;
+
 export class SwapError extends Error {
   constructor(
     message: string,
@@ -55,9 +58,12 @@ export function validateInputAmount(amount: string, decimals: number): void {
     throw new SwapError('Enter an amount to swap', 'ZERO_AMOUNT', true);
   }
 
-  const num = parseFloat(amount);
-  if (isNaN(num) || num <= 0) {
+  if (!DECIMAL_AMOUNT_RE.test(amount)) {
     throw new SwapError('Invalid amount entered', 'INVALID_AMOUNT', true);
+  }
+
+  if (ZERO_DECIMAL_AMOUNT_RE.test(amount)) {
+    throw new SwapError('Enter an amount to swap', 'ZERO_AMOUNT', true);
   }
 
   // Check decimal places

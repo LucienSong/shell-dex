@@ -94,8 +94,12 @@ test('validateInputAmount accepts positive values within token decimals', () => 
 test('validateInputAmount rejects empty, zero, negative, malformed, and over-precise values', () => {
   expectSwapError(() => validateInputAmount('', 6), { code: 'ZERO_AMOUNT' });
   expectSwapError(() => validateInputAmount('0', 6), { code: 'ZERO_AMOUNT' });
+  expectSwapError(() => validateInputAmount('0.0', 6), { code: 'ZERO_AMOUNT' });
   expectSwapError(() => validateInputAmount('-1', 6), { code: 'INVALID_AMOUNT' });
   expectSwapError(() => validateInputAmount('abc', 6), { code: 'INVALID_AMOUNT' });
+  expectSwapError(() => validateInputAmount('1abc', 6), { code: 'INVALID_AMOUNT' });
+  expectSwapError(() => validateInputAmount('1e3', 6), { code: 'INVALID_AMOUNT' });
+  expectSwapError(() => validateInputAmount('1.', 6), { code: 'INVALID_AMOUNT' });
   expectSwapError(() => validateInputAmount('0.0000001', 6), {
     code: 'TOO_MANY_DECIMALS',
   });

@@ -85,7 +85,7 @@ export async function getBridgeQuote(
     throw new Error(`Token ${token.symbol} is not available on both chains.`);
   }
 
-  const normalizedAmount = normalizeAmount(amount, token.decimals, token.symbol);
+  const normalizedAmount = normalizeBridgeAmount(amount, token.decimals, token.symbol);
   return buildDeterministicBridgeQuote(
     token,
     normalizedAmount,
@@ -203,13 +203,18 @@ function getEstimatedDestinationGas(chainId: SupportedChainId): string {
   return chainId === 42161 ? '240000' : '180000';
 }
 
-function normalizeAmount(amount: string, decimals: number, symbol: string): string {
-  if (!amount || Number(amount) <= 0) {
+export function normalizeBridgeAmount(amount: string, decimals: number, symbol: string): string {
+  const trimmed = amount.trim();
+  if (!trimmed) {
     throw new Error(`Enter a valid ${symbol} amount.`);
   }
 
   try {
-    return formatUnits(parseUnits(amount, decimals), decimals);
+    const amountUnits = parseUnits(trimmed, decimals);
+    if (amountUnits <= 0n) {
+      throw new Error('amount must be positive');
+    }
+    return formatUnits(amountUnits, decimals);
   } catch {
     throw new Error(`Enter a valid ${symbol} amount.`);
   }

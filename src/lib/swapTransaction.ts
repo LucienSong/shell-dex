@@ -240,9 +240,25 @@ function parseAmountToBaseUnits(
   decimals: number,
   label: string
 ): bigint {
+  const normalized = amount.trim();
+  if (!Number.isInteger(decimals) || decimals < 0) {
+    throw new Error(`${label} token decimals are invalid`);
+  }
+  if (!/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(normalized)) {
+    throw new Error(`${label} amount must be a positive decimal value`);
+  }
+  const fractionalDigits = normalized.split('.')[1]?.length ?? 0;
+  if (fractionalDigits > decimals) {
+    throw new Error(`${label} amount is invalid for token decimals`);
+  }
+  let parsed: bigint;
   try {
-    return parseUnits(amount, decimals);
+    parsed = parseUnits(normalized, decimals);
   } catch {
     throw new Error(`${label} amount is invalid for token decimals`);
   }
+  if (parsed <= 0n) {
+    throw new Error(`${label} amount must be greater than zero`);
+  }
+  return parsed;
 }

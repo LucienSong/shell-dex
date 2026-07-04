@@ -10,10 +10,12 @@
 import { describe, it, expect } from 'vitest';
 import { decodeFunctionData, encodeFunctionData, zeroAddress } from 'viem';
 import {
+  buildSwapTransaction,
   calculateMinimumOutput,
   encodeSlippageIntoCallData,
   SHELL_DEX_ROUTER_ABI,
 } from '../src/lib/swapTransaction';
+import type { SwapQuote } from '../src/lib/swapRouter';
 
 // ── calculateMinimumOutput ────────────────────────────────────────────────────
 
@@ -130,5 +132,86 @@ describe('encodeSlippageIntoCallData', () => {
     const updated = encodeSlippageIntoCallData(callData, '99');
     const decoded = decodeFunctionData({ abi: SHELL_DEX_ROUTER_ABI, data: updated as `0x${string}` });
     expect(decoded.args[3]).toBe(99n);
+  });
+});
+
+// ── buildSwapTransaction amount parsing ─────────────────────────────────────
+
+describe('buildSwapTransaction amount parsing', () => {
+  const tokenIn   = '0x1111111111111111111111111111111111111111' as `0x${string}`;
+  const tokenOut  = '0x2222222222222222222222222222222222222222' as `0x${string}`;
+  const recipient = '0x3333333333333333333333333333333333333333' as `0x${string}`;
+  const router    = '0x4444444444444444444444444444444444444444' as `0x${string}`;
+  const deadline  = 9999999999n;
+
+  function makeQuote(outputAmount = '1000'): SwapQuote {
+    return {
+      inputAmount: '1',
+      outputAmount,
+      tradeType: 'exactIn',
+      route: [tokenIn, tokenOut],
+      fees: { total: '0', percentage: 0 },
+      priceImpact: 0,
+      minReceived: '995',
+      expireTime: Date.now() + 30_000,
+      estimatedGas: '210000',
+      swapContract: router,
+      callData: encodeFunctionData({
+        abi: SHELL_DEX_ROUTER_ABI,
+        functionName: 'swap',
+        args: [tokenIn, tokenOut, 500n, 0n, recipient, deadline],
+      }),
+      routes: [],
+      selectedRouteId: 'direct',
+      selectedRoute: {
+        id: 'direct',
+        rank: 1,
+        routePath: [tokenIn, tokenOut],
+        inputAmount: '1',
+        expectedOutput: outputAmount,
+        estimatedTotalFees: '0',
+        totalFeePercentage: 0,
+        priceImpact: 0,
+        minReceived: '995',
+        estimatedTotalGas: '210000',
+        swapContract: router,
+        callData: '0x',
+        hops: [],
+      },
+    } as unknown as SwapQuote;
+  }
+
+  it('rejects invalid native input amounts before building a transaction', () => {
+    expect(() => buildSwapTransaction({
+      quote: makeQuote(),
+      slippageTolerance: 0.005,
+      userAddress: recipient,
+      inputAmount: '-1',
+      inputTokenDecimals: 18,
+      outputTokenDecimals: 18,
+      isNativeInput: true,
+    })).toThrow('Input amount must be a positive decimal value');
+
+    expect(() => buildSwapTransaction({
+      quote: makeQuote(),
+      slippageTolerance: 0.005,
+      userAddress: recipient,
+      inputAmount: '0',
+      inputTokenDecimals: 18,
+      outputTokenDecimals: 18,
+      isNativeInput: true,
+    })).toThrow('Input amount must be greater than zero');
+  });
+
+  it('rejects quote outputs that exceed token decimal precision', () => {
+    expect(() => buildSwapTransaction({
+      quote: makeQuote('0.0000001'),
+      slippageTolerance: 0.005,
+      userAddress: recipient,
+      inputAmount: '1',
+      inputTokenDecimals: 18,
+      outputTokenDecimals: 6,
+      isNativeInput: false,
+    })).toThrow('Quote output amount is invalid for token decimals');
   });
 });

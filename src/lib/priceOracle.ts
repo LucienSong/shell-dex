@@ -8,6 +8,7 @@
  * - Historical price tracking (optional)
  */
 
+import { formatUnits } from 'viem';
 import { Token } from '@/config/tokens';
 
 /**
@@ -195,8 +196,23 @@ export function calculateUSDValue(
   priceUSD: number
 ): number {
   try {
-    const decimals = Math.pow(10, token.decimals);
-    const humanAmount = parseFloat(amount) / decimals;
+    if (!Number.isInteger(token.decimals) || token.decimals < 0) {
+      return 0;
+    }
+    if (!Number.isFinite(priceUSD) || priceUSD <= 0) {
+      return 0;
+    }
+
+    const rawAmount = BigInt(amount);
+    if (rawAmount < 0n) {
+      return 0;
+    }
+
+    const humanAmount = Number(formatUnits(rawAmount, token.decimals));
+    if (!Number.isFinite(humanAmount)) {
+      return 0;
+    }
+
     return humanAmount * priceUSD;
   } catch {
     return 0;
